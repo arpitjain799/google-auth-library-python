@@ -89,6 +89,10 @@ def _can_retry(status_code, response_data):
         # For a failed response, response_body could be a string
         error_desc = response_data.get("error_description") or ""
         error_code = response_data.get("error") or ""
+        if not isinstance(error_code, six.string_types) or not isinstance(
+            error_desc, six.string_types
+        ):
+            return False
 
         if not isinstance(error_code, six.string_types) or not isinstance(
             error_desc, six.string_types
@@ -102,7 +106,6 @@ def _can_retry(status_code, response_data):
             "server_error",
             "temporarily_unavailable",
         }
-
         if any(e in retryable_error_descriptions for e in (error_code, error_desc)):
             return True
 
@@ -142,6 +145,7 @@ def _token_endpoint_request_no_throw(
     access_token=None,
     use_json=False,
     can_retry=True,
+    extra_headers={},
     **kwargs
 ):
     """Makes a request to the OAuth 2.0 authorization server's token endpoint.
@@ -157,6 +161,7 @@ def _token_endpoint_request_no_throw(
         use_json (Optional(bool)): Use urlencoded format or json format for the
             content type. The default value is False.
         can_retry (bool): Enable or disable request retry behavior.
+        extra_headers (Optional(Dict[str, str])): Additional headers for the request.
         kwargs: Additional arguments passed on to the request method. The
             kwargs will be passed to `requests.request` method, see:
             https://docs.python-requests.org/en/latest/api/#requests.request.
@@ -180,6 +185,7 @@ def _token_endpoint_request_no_throw(
 
     if access_token:
         headers["Authorization"] = "Bearer {}".format(access_token)
+    headers.update(extra_headers)
 
     def _perform_request():
         response = request(
@@ -227,6 +233,7 @@ def _token_endpoint_request(
     access_token=None,
     use_json=False,
     can_retry=True,
+    extra_headers={},
     **kwargs
 ):
     """Makes a request to the OAuth 2.0 authorization server's token endpoint.
@@ -241,6 +248,7 @@ def _token_endpoint_request(
         use_json (Optional(bool)): Use urlencoded format or json format for the
             content type. The default value is False.
         can_retry (bool): Enable or disable request retry behavior.
+        extra_headers (Optional(Dict[str, str])): Additional headers for the request.
         kwargs: Additional arguments passed on to the request method. The
             kwargs will be passed to `requests.request` method, see:
             https://docs.python-requests.org/en/latest/api/#requests.request.
@@ -264,6 +272,7 @@ def _token_endpoint_request(
         access_token=access_token,
         use_json=use_json,
         can_retry=can_retry,
+        extra_headers=extra_headers,
         **kwargs
     )
     if not response_status_ok:
@@ -271,7 +280,7 @@ def _token_endpoint_request(
     return response_data
 
 
-def jwt_grant(request, token_uri, assertion, can_retry=True):
+def jwt_grant(request, token_uri, assertion, can_retry=True, extra_headers={}):
     """Implements the JWT Profile for OAuth 2.0 Authorization Grants.
 
     For more details, see `rfc7523 section 4`_.
@@ -283,6 +292,7 @@ def jwt_grant(request, token_uri, assertion, can_retry=True):
             URI.
         assertion (str): The OAuth 2.0 assertion.
         can_retry (bool): Enable or disable request retry behavior.
+        extra_headers (Optional(Dict[str, str])): Additional headers for the request.
 
     Returns:
         Tuple[str, Optional[datetime], Mapping[str, str]]: The access token,
@@ -297,7 +307,7 @@ def jwt_grant(request, token_uri, assertion, can_retry=True):
     body = {"assertion": assertion, "grant_type": _JWT_GRANT_TYPE}
 
     response_data = _token_endpoint_request(
-        request, token_uri, body, can_retry=can_retry
+        request, token_uri, body, can_retry=can_retry, extra_headers=extra_headers
     )
 
     try:
@@ -313,7 +323,7 @@ def jwt_grant(request, token_uri, assertion, can_retry=True):
     return access_token, expiry, response_data
 
 
-def id_token_jwt_grant(request, token_uri, assertion, can_retry=True):
+def id_token_jwt_grant(request, token_uri, assertion, can_retry=True, extra_headers={}):
     """Implements the JWT Profile for OAuth 2.0 Authorization Grants, but
     requests an OpenID Connect ID Token instead of an access token.
 
@@ -329,6 +339,7 @@ def id_token_jwt_grant(request, token_uri, assertion, can_retry=True):
         assertion (str): JWT token signed by a service account. The token's
             payload must include a ``target_audience`` claim.
         can_retry (bool): Enable or disable request retry behavior.
+        extra_headers (Optional(Dict[str, str])): Additional headers for the request.
 
     Returns:
         Tuple[str, Optional[datetime], Mapping[str, str]]:
@@ -342,7 +353,7 @@ def id_token_jwt_grant(request, token_uri, assertion, can_retry=True):
     body = {"assertion": assertion, "grant_type": _JWT_GRANT_TYPE}
 
     response_data = _token_endpoint_request(
-        request, token_uri, body, can_retry=can_retry
+        request, token_uri, body, can_retry=can_retry, extra_headers=extra_headers
     )
 
     try:
@@ -399,6 +410,7 @@ def refresh_grant(
     scopes=None,
     rapt_token=None,
     can_retry=True,
+    extra_headers={},
 ):
     """Implements the OAuth 2.0 refresh token grant.
 
@@ -419,6 +431,7 @@ def refresh_grant(
             'https://www.googleapis.com/auth/any-api').
         rapt_token (Optional(str)): The reauth Proof Token.
         can_retry (bool): Enable or disable request retry behavior.
+        extra_headers (Optional(Dict[str, str])): Additional headers for the request.
 
     Returns:
         Tuple[str, str, Optional[datetime], Mapping[str, str]]: The access
@@ -443,6 +456,6 @@ def refresh_grant(
         body["rapt"] = rapt_token
 
     response_data = _token_endpoint_request(
-        request, token_uri, body, can_retry=can_retry
+        request, token_uri, body, can_retry=can_retry, extra_headers=extra_headers
     )
     return _handle_refresh_grant_response(response_data, refresh_token)
