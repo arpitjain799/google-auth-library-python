@@ -74,10 +74,10 @@ CLOUD_SDK_INSTALL_DIR = CLOUD_SDK_ROOT.joinpath("google-cloud-sdk")
 # The full path to the gcloud cli executable.
 GCLOUD = str(CLOUD_SDK_INSTALL_DIR.joinpath("bin", "gcloud"))
 
-# gcloud requires Python 2 and doesn't work on 3, so we need to tell it
-# where to find 2 when we're running in a 3 environment.
+# gcloud requires Python 3 and doesn't work on 2, so we need to tell it
+# where to find 3
 CLOUD_SDK_PYTHON_ENV = "CLOUDSDK_PYTHON"
-CLOUD_SDK_PYTHON = which("python2", None)
+CLOUD_SDK_PYTHON = which("python3", None)
 
 # Cloud SDK helpers
 
@@ -89,7 +89,7 @@ def install_cloud_sdk(session):
     # our tests from clobbering a developer's configuration when running
     # these tests locally.
     session.env[CLOUD_SDK_CONFIG_ENV] = str(CLOUD_SDK_ROOT)
-    # This tells gcloud which Python interpreter to use (always use 2.7)
+    # This tells gcloud which Python interpreter to use (always use 3.7)
     session.env[CLOUD_SDK_PYTHON_ENV] = CLOUD_SDK_PYTHON
     # This set the $PATH for the subprocesses so they can find the gcloud
     # executable.
@@ -176,7 +176,7 @@ def configure_cloud_sdk(session, application_default_credentials, project=False)
 TEST_DEPENDENCIES_ASYNC = ["aiohttp", "pytest-asyncio", "nest-asyncio", "mock"]
 TEST_DEPENDENCIES_SYNC = ["pytest", "requests", "mock"]
 PYTHON_VERSIONS_ASYNC = ["3.7"]
-PYTHON_VERSIONS_SYNC = ["2.7", "3.7"]
+PYTHON_VERSIONS_SYNC = ["3.7"]
 
 
 def default(session, *test_paths):
@@ -292,7 +292,7 @@ def compute_engine(session):
     )
 
 
-@nox.session(python=["2.7"])
+@nox.session(python=["3.7"])
 def app_engine(session):
     if SKIP_GAE_TEST_ENV in os.environ:
         session.log("Skipping App Engine tests.")
