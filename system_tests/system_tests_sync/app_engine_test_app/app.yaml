@@ -1,6 +1,6 @@
 api_version: 1
 service: google-auth-system-tests
-runtime: python27
+runtime: python37
 threadsafe: true
 
 handlers:
